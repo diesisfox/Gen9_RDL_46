@@ -10,13 +10,14 @@
 
 #include "main.h"
 #include <String.h>
+#include "stm32f4xx_hal.h"
 
-#ifndef SERIAL1_BUFFER_SIZE
-#define SERIAL1_BUFFER_SIZE 64
+#ifndef SERIAL1_BUFFER_SIZE_RX
+#define SERIAL1_BUFFER_SIZE_RX 2048
 #endif
 
 #ifndef SERIAL1_BUFFER_SIZE_TX
-#define SERIAL1_BUFFER_SIZE_TX 128
+#define SERIAL1_BUFFER_SIZE_TX 2048
 #endif
 
 //this is for writing an existing, assigned buffer:
@@ -27,7 +28,7 @@
 
 uint8_t Serial1_writeStr_Buf[SERIAL1_BUFFER_SIZE_TX];
 
-uint8_t Serial1_buffer[SERIAL1_BUFFER_SIZE];
+uint8_t Serial1_buffer[SERIAL1_BUFFER_SIZE_RX];
 
 void Serial1_begin();
 int Serial1_available();

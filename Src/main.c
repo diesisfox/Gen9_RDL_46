@@ -47,7 +47,12 @@
 #include "fatfs.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "can.h"
+#include "serial.h"
+#include "serial1.h"
+#include "nodeMiscHelpers.h"
+#include "nodeConf.h"
+#include "../../CAN_ID.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -89,7 +94,6 @@ static void MX_CAN1_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_WWDG_Init(void);
-static void MX_SPI2_Init(void);
 void doApplication(void const * argument);
 void doProcessCan(void const * argument);
 void TmrKickDog(void const * argument);
@@ -108,7 +112,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	selfStatusWord = INIT;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -126,10 +130,17 @@ int main(void)
   MX_UART4_Init();
   MX_USART2_UART_Init();
   MX_WWDG_Init();
-  MX_SPI2_Init();
 
   /* USER CODE BEGIN 2 */
+  Serial2_begin();
+  Serial2_writeBuf("Booting... \n");
 
+  Serial1_begin();
+
+    bxCan_begin(&hcan1, &mainCanRxQHandle, &mainCanTxQHandle);
+    // TODO: Set node-specific CAN filters
+    bxCan_addMaskedFilterStd(0,0,0); // Filter: Status word group (ignore nodeID)
+    bxCan_addMaskedFilterExt(0,0,0);
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -156,6 +167,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+  osTimerStart(WWDGTmrHandle, WD_Interval);
+    osTimerStart(HBTmrHandle, HB_Interval);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
@@ -453,10 +466,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SPI2_CS1_Pin|LD2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI2_CS2_GPIO_Port, SPI2_CS2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, XBEE_CS_Pin|LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, XBEE_RESET_Pin|DTR_Pin, GPIO_PIN_RESET);
@@ -467,16 +477,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC0 PC1 PC5 PC6 
-                           PC7 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_12;
+  /*Configure GPIO pins : PC0 PC1 PC4 PC5 
+                           PC6 PC7 PC12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5 
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI2_CS1_Pin LD2_Pin */
-  GPIO_InitStruct.Pin = SPI2_CS1_Pin|LD2_Pin;
+  /*Configure GPIO pins : XBEE_CS_Pin LD2_Pin */
+  GPIO_InitStruct.Pin = XBEE_CS_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -489,13 +499,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : SPI2_CS2_Pin */
-  GPIO_InitStruct.Pin = SPI2_CS2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI2_CS2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB1 PB14 PB15 PB4 
                            PB5 PB7 */
@@ -533,11 +536,39 @@ void doApplication(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
+	uint8_t startingBytes[2][9] = {
+			{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28},
+			{0x29, 0x2a, 0x2c, 0x2d, 0x2e, 0x3a, 0x3b, 0x3c, 0x3e}
+	};
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	for(;;)
+	{
+		if(Serial1_available()){
+			if(getSelfState() == ACTIVE){
+				static Can_frame_t newFrame;
+				newFrame.isRemote = 0; //just to make sure
+				uint8_t start = Serial1_read();
+				for(uint8_t i=0; i<2; i++){
+					for(uint8_t j=0; j<9; j++){
+						if(start == startingBytes[i][j]){
+							newFrame.isExt = i;
+							newFrame.dlc = j;
+							if(parseFrame(i, j, &newFrame)){
+								bxCan_sendFrame(&newFrame);
+								Serial2_writeBuf("Sent a frame\n");
+								break;
+							}
+						}
+					}
+				}
+				Serial2_write(Serial1_available());
+			}else{
+				Serial1_read();
+			}
+		}else{
+			osDelay(1);
+		}
+    }
   /* USER CODE END 5 */ 
 }
 
@@ -546,10 +577,26 @@ void doProcessCan(void const * argument)
 {
   /* USER CODE BEGIN doProcessCan */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	for(;;){
+		static Can_frame_t newFrame;
+		xQueueReceive(mainCanRxQHandle, &newFrame, portMAX_DELAY);
+
+		frameToBase64(&newFrame);
+		// TODO: Add RTC Timestamp (if radio baud rate allows)
+
+		uint32_t canID = newFrame.id;	// canID container //TODO why byte
+#ifdef __JAMES__
+		Serial2_writeBuf("Got a frame.");
+#endif
+		if(canID == p2pOffset || canID == selfNodeID + p2pOffset){
+			// Multicast or unicast command received!
+			taskENTER_CRITICAL();
+			executeCommand(newFrame.Data[0]);
+			taskEXIT_CRITICAL();
+			// XXX 1: Additional application-level message parsing
+			// Note: Any application-level messages should be either mutex protected or passed via queue!
+		}
+	}
   /* USER CODE END doProcessCan */
 }
 
@@ -557,7 +604,10 @@ void doProcessCan(void const * argument)
 void TmrKickDog(void const * argument)
 {
   /* USER CODE BEGIN TmrKickDog */
-  
+	// CHECKED
+	taskENTER_CRITICAL();
+	HAL_WWDG_Refresh(&hwwdg);
+	taskEXIT_CRITICAL();
   /* USER CODE END TmrKickDog */
 }
 
@@ -565,7 +615,40 @@ void TmrKickDog(void const * argument)
 void TmrSendHB(void const * argument)
 {
   /* USER CODE BEGIN TmrSendHB */
-  
+	// CHECKED
+	static Can_frame_t newFrame;
+
+//	newFrame.isExt = 0;
+//	newFrame.isRemote = 0;
+	// ^ is initialized as 0
+
+	if(getSelfState() == ACTIVE){
+		// Assemble new heartbeat frame
+		newFrame.id = selfNodeID + swOffset;
+		newFrame.dlc = CAN_HB_DLC;
+		for(int i=0; i<4; i++){
+			newFrame.Data[3-i] = (selfStatusWord >> (8*i)) & 0xff;			// Convert uint32_t -> uint8_t
+		}
+		bxCan_sendFrame(&newFrame);
+		#ifdef DEBUG
+			static uint8_t hbmsg[] = "Heartbeat issued\n";
+			Serial2_writeBytes(hbmsg, sizeof(hbmsg)-1);
+		#endif
+	}
+	else if (getSelfState() == INIT){
+		// Assemble new addition request (firmware version) frame
+		newFrame.id = selfNodeID + fwOffset;
+		newFrame.dlc = CAN_FW_DLC;
+		for(int i=0; i<4; i++){
+			newFrame.Data[3-i] = (firmwareString >> (8*i)) & 0xff;			// Convert uint32_t -> uint8_t
+		}
+		bxCan_sendFrame(&newFrame);
+		#ifdef DEBUG
+			static uint8_t hbmsg[] = "Init handshake issued\n";
+			Serial2_writeBytes(hbmsg, sizeof(hbmsg)-1);
+		#endif
+	}
+	// No heartbeats sent in other states
   /* USER CODE END TmrSendHB */
 }
 

@@ -7,14 +7,14 @@
 
 #include "serial1.h"
 
-extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart4;
 
 static uint8_t *Serial1_tail = Serial1_buffer;
-static uint8_t *Serial1_max = Serial1_buffer + SERIAL1_BUFFER_SIZE; //points just outside the bounds
+static uint8_t *Serial1_max = Serial1_buffer + SERIAL1_BUFFER_SIZE_RX; //points just outside the bounds
 uint8_t Serial1_Ovf = 0;
 
 void Serial1_begin(){
-	HAL_UART_Receive_DMA(&huart1, Serial1_buffer, SERIAL1_BUFFER_SIZE);
+	HAL_UART_Receive_DMA(&huart4, Serial1_buffer, SERIAL1_BUFFER_SIZE_RX);
 }
 
 //void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
@@ -22,7 +22,8 @@ void Serial1_begin(){
 //}
 
 static uint8_t *Serial1_getHead(){ //Volatile! Avoid use as much as possible!
-	return Serial1_buffer + SERIAL1_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1,LL_DMA_CHANNEL_5);
+//	return Serial1_buffer + SERIAL1_BUFFER_SIZE - LL_DMA_GetDataLength(DMA?,LL_DMA_CHANNEL_?);
+	return Serial1_buffer + SERIAL1_BUFFER_SIZE_RX - (huart4.hdmarx->Instance->NDTR & 0xffff);
 }
 
 int Serial1_available(){
@@ -30,11 +31,11 @@ int Serial1_available(){
 	if(Serial1_Ovf==0){
 		return head - Serial1_tail;
 	}else if((Serial1_Ovf==1) && (head <= Serial1_tail)){
-		return SERIAL1_BUFFER_SIZE - (Serial1_tail - head);
+		return SERIAL1_BUFFER_SIZE_RX - (Serial1_tail - head);
 	}else{
 		Serial1_tail = head;
 		Serial1_Ovf = 1;
-		return SERIAL1_BUFFER_SIZE;
+		return SERIAL1_BUFFER_SIZE_RX;
 	}
 }
 
@@ -82,7 +83,7 @@ int Serial1_find(uint8_t data){
 	//different from Arduino: this returns index of char of interest!
 	for(int i=0; i<Serial1_available(); i++){
 		if(*((Serial1_tail+i >= Serial1_max)?
-				Serial1_tail+i-SERIAL1_BUFFER_SIZE:
+				Serial1_tail+i-SERIAL1_BUFFER_SIZE_RX:
 				Serial1_tail+i) ==data) return i;
 	}
 	return -1;
@@ -91,7 +92,7 @@ int Serial1_find(uint8_t data){
 int Serial1_findAny(uint8_t *match, int length){
 	for(int i=0; i<Serial1_available(); i++){
 		uint8_t input = *((Serial1_tail+i >= Serial1_max)?
-				Serial1_tail+i-SERIAL1_BUFFER_SIZE:
+				Serial1_tail+i-SERIAL1_BUFFER_SIZE_RX:
 				Serial1_tail+i);
 		for(int j=0; j<length; j++){
 			if(input == *(match+j)) return i;
@@ -126,7 +127,7 @@ int Serial1_readCommand(uint8_t *buffer){ //returns length of command
 }
 
 int Serial1_availableForWrite(){
-	HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart1);
+	HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart4);
 	if(state == HAL_UART_STATE_BUSY_TX || state == HAL_UART_STATE_BUSY_TX_RX){
 		return 0;
 	}else{
@@ -176,7 +177,7 @@ void Serial1_doTx(uint8_t fromISR){
 		}else{
 			currentWrite = txavail;
 		}
-		HAL_UART_Transmit_DMA(&huart1, Serial1_tail_tx, currentWrite);
+		HAL_UART_Transmit_DMA(&huart4, Serial1_tail_tx, currentWrite);
 		Serial1_dequeue_tx(currentWrite);
 		Serial1_txWillTrigger = 0;
 	}

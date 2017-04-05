@@ -8,30 +8,22 @@
 #include "serial.h"
 
 extern UART_HandleTypeDef huart2;
-extern UART_HandleTypeDef huart1;
-
-extern uint8_t Serial1_Ovf;
-extern void Serial1_doTx(uint8_t);
-extern uint8_t Serial1_txWillTrigger;
 
 static uint8_t *Serial2_tail = Serial2_buffer;
 static uint8_t *Serial2_max = Serial2_buffer + SERIAL2_BUFFER_SIZE_RX; //points just outside the bounds
-uint8_t Serial2_Ovf = 0;
+static uint8_t Serial2_Ovf = 0;
 
 void Serial2_begin(){
 	HAL_UART_Receive_DMA(&huart2, Serial2_buffer, SERIAL2_BUFFER_SIZE_RX);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	if(huart == &huart2){
-		if(Serial2_Ovf < 3) Serial2_Ovf++;
-	}else if(huart == &huart1){
-		if(Serial1_Ovf < 3) Serial1_Ovf++;
-	}
+	if(Serial2_Ovf < 3) Serial2_Ovf++;
 }
 
 static uint8_t *Serial2_getHead(){ //Volatile! Avoid use as much as possible!
-	return Serial2_buffer + SERIAL2_BUFFER_SIZE_RX - LL_DMA_GetDataLength(DMA1,LL_DMA_CHANNEL_6);
+//	return Serial2_buffer + SERIAL2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1,LL_DMA_CHANNEL_6);
+	return Serial2_buffer + SERIAL2_BUFFER_SIZE_RX - (huart2.hdmarx->Instance->NDTR & 0xffff);
 }
 
 int Serial2_available(){
@@ -154,7 +146,7 @@ static uint8_t *Serial2_head_tx = Serial2_Buffer_tx;
 static uint8_t *Serial2_max_tx = Serial2_Buffer_tx + SERIAL2_BUFFER_SIZE_TX;
 static uint8_t Serial2_ovf_tx = 0;
 static uint16_t currentWrite = 0; //length of ongoing dma transaction
-static uint8_t Serial2_txWillTrigger = 0;
+static uint8_t txWillTrigger = 0;
 
 static int Serial2_available_tx(){
 	if(Serial2_ovf_tx==0){
@@ -176,7 +168,7 @@ static void Serial2_dequeue_tx(int length){
 	}
 }
 
-static void Serial2_doTx(uint8_t fromISR){
+static void doTx(uint8_t fromISR){
 	static int txavail;
 	txavail = Serial2_available_tx();
 	if(txavail){
@@ -187,21 +179,17 @@ static void Serial2_doTx(uint8_t fromISR){
 		}
 		HAL_UART_Transmit_DMA(&huart2, Serial2_tail_tx, currentWrite);
 		Serial2_dequeue_tx(currentWrite);
-		Serial2_txWillTrigger = 0;
+		txWillTrigger = 0;
 	}
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
-	if(huart == &huart2){
-		if(Serial2_txWillTrigger == 0) Serial2_doTx(1);
-	}else if(huart == &huart1){
-		if(Serial1_txWillTrigger == 0) Serial1_doTx(1);
-	}
+	if(txWillTrigger == 0) doTx(1);
 }
 
 //IF YOU ARE USING RTOS, PLEASE USE MUTEXES, OR WRAP THE BELOW IN CRITICAL SECTIONS.
 void Serial2_writeBytes(uint8_t *data, uint16_t length){
-	Serial2_txWillTrigger = 1;
+	txWillTrigger = 1;
 	if(Serial2_head_tx + length >= Serial2_max_tx){
 		uint16_t half = Serial2_max_tx-Serial2_head_tx;
 		memcpy(Serial2_head_tx, data, half);
@@ -213,9 +201,9 @@ void Serial2_writeBytes(uint8_t *data, uint16_t length){
 		Serial2_head_tx += length;
 	}
 	if(Serial2_availableForWrite()){
-		Serial2_doTx(0);
+		doTx(0);
 	}else{
-		Serial2_txWillTrigger = 0;
+		txWillTrigger = 0;
 	}
 }
 

@@ -11,6 +11,7 @@
 
 #include "main.h"
 #include "cmsis_os.h"
+#include "stm32f4xx_hal.h"
 
 #define CAN_BANKS 14
 
@@ -55,6 +56,6 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan);
 
 void bxCan_setTxCallback(void(*pt)());
 void bxCan_setRxCallback(void(*pt)());
-void bxCan_setErrCallback(void(*pt)(uint32_t));
+void bxCan_setErrCallback(void(*pt)(uint32_t erCode));
 
 #endif /* CAN_H_ */
