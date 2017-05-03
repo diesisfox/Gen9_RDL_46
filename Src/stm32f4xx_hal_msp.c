@@ -609,6 +609,9 @@ void HAL_WWDG_MspInit(WWDG_HandleTypeDef* hwwdg)
   /* USER CODE END WWDG_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_WWDG_CLK_ENABLE();
+    /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(WWDG_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(WWDG_IRQn);
   /* USER CODE BEGIN WWDG_MspInit 1 */
 
   /* USER CODE END WWDG_MspInit 1 */
