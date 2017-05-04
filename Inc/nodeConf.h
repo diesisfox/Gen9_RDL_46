@@ -42,7 +42,7 @@
 #ifdef FRANK
 static const uint32_t firmwareString = 0x00000100;	// v00.00.01.0
 static const uint8_t selfNodeID = 6;	// Radio
-uint32_t selfStatusWord = 0x0;
+static uint32_t selfStatusWord = 0x0;
 #define NODE_CONFIGURED
 #elif defined (__JAMES__)
 const uint32_t firmwareString = 0x00000100;
@@ -53,7 +53,7 @@ uint32_t selfStatusWord = 0x0;
 // SW_Sentinel will fail the CC firmware check and result in node addition failure!
 static const uint32_t firmwareString = 0x00000001;			// Firmware Version string
 static const uint8_t selfNodeID = radio_nodeID;					// The nodeID of this node
-uint32_t selfStatusWord;	// Initialize
+static uint32_t selfStatusWord;	// Initialize
 #define NODE_CONFIGURED
 #endif
 
