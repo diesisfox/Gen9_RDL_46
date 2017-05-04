@@ -48,7 +48,7 @@ void setSelfState(nodeState newState);
 nodeState getSelfState();
 void soft_shutdown(void(*usr_clbk)());
 void frameToBase64(Can_frame_t*);
-void waitTilAvail(uint);
+void waitTilAvail(unsigned int);
 uint8_t parseFrame(uint8_t, uint8_t, Can_frame_t*); //returns true if successful
 
 #endif /* NODEMISCHELPERS_H_ */

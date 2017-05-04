@@ -9,6 +9,10 @@
 
 extern UART_HandleTypeDef huart4;
 
+uint8_t Serial1_writeStr_Buf[SERIAL1_BUFFER_SIZE_TX]; 
+ 
+uint8_t Serial1_buffer[SERIAL1_BUFFER_SIZE_RX]; 
+
 static uint8_t *Serial1_tail = Serial1_buffer;
 static uint8_t *Serial1_max = Serial1_buffer + SERIAL1_BUFFER_SIZE_RX; //points just outside the bounds
 uint8_t Serial1_Ovf = 0;

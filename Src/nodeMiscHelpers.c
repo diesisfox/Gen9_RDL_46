@@ -6,6 +6,7 @@
  */
 #include "nodeMiscHelpers.h"
 #include "nodeConf.h"
+#include "serial1.h"
 
 extern uint32_t 	selfStatusWord;
 extern osMutexId 	swMtxHandle;
@@ -111,7 +112,7 @@ void executeCommand(uint8_t cmd){
 /* CHECKED
  * Thread-safe node state accessor
  */
-nodeState inline getSelfState(){
+nodeState getSelfState(){
 	xSemaphoreTake(swMtxHandle, portMAX_DELAY);
 	nodeState ret = (nodeState)(selfStatusWord & 0x07);
 	xSemaphoreGive(swMtxHandle);
@@ -152,7 +153,7 @@ inline void soft_shutdown(void(*usr_clbk)()){
 	// TODO: Test if bxCan_sendFrame can successfully send the new frame and flush the queue
 }
 
-inline void waitTilAvail(uint length){ //blocks current taks (runs others) until true
+inline void waitTilAvail(unsigned int length){ //blocks current taks (runs others) until true
 	while(Serial2_available() < length){
 		osDelay(1);
 	}
@@ -180,7 +181,7 @@ static uint8_t bitsTo64(uint8_t bits){
 	return '^'; //input invalid
 }
 
-static void replaceBadChars(uint length){
+static void replaceBadChars(unsigned int length){
 	for(int j=0; j<length; j++){
 		if(encodedString[j] == 'A'){
 			encodedString[j] = altA;
@@ -190,7 +191,7 @@ static void replaceBadChars(uint length){
 	}
 }
 
-static uint base64encode(uint8_t bytes){
+static unsigned int base64encode(uint8_t bytes){
 	int i=0;
 	for(;i<bytes/3; i++){
 		encodedString[4*i+1] = bitsTo64((frameString[3*i+0] >> 2) & 0x3f);
