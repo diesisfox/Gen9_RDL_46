@@ -82,7 +82,7 @@ osMutexId swMtxHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+uint32_t selfStatusWord;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
