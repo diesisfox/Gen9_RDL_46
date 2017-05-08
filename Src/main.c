@@ -74,6 +74,7 @@ WWDG_HandleTypeDef hwwdg;
 
 osThreadId ApplicationHandle;
 osThreadId Can_ProcessorHandle;
+osThreadId rxHousekeepHandle;
 osMessageQId mainCanTxQHandle;
 osMessageQId mainCanRxQHandle;
 osTimerId WWDGTmrHandle;
@@ -96,6 +97,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_WWDG_Init(void);
 void doApplication(void const * argument);
 void doProcessCan(void const * argument);
+void doRxHousekeep(void const * argument);
 void TmrKickDog(void const * argument);
 void TmrSendHB(void const * argument);
 
@@ -133,7 +135,7 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   Serial2_begin();
-  Serial2_writeBuf("Booting... \n");
+  Serial2_writeBuf("\n\nBooting... \n\n");
 
   Serial1_begin();
 
@@ -179,6 +181,10 @@ int main(void)
   /* definition and creation of Can_Processor */
   osThreadDef(Can_Processor, doProcessCan, osPriorityBelowNormal, 0, 512);
   Can_ProcessorHandle = osThreadCreate(osThread(Can_Processor), NULL);
+
+  /* definition and creation of rxHousekeep */
+  osThreadDef(rxHousekeep, doRxHousekeep, osPriorityAboveNormal, 0, 256);
+  rxHousekeepHandle = osThreadCreate(osThread(rxHousekeep), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -598,6 +604,34 @@ void doProcessCan(void const * argument)
 		}
 	}
   /* USER CODE END doProcessCan */
+}
+
+/* doRxHousekeep function */
+void doRxHousekeep(void const * argument)
+{
+  uint8_t bamboozle = 0;
+  /* USER CODE BEGIN doRxHousekeep */
+  /* Infinite loop */
+  for(;;)
+  {
+    if(hcan1.State == HAL_CAN_STATE_READY || hcan1.State == HAL_CAN_STATE_BUSY_TX || \
+      hcan1.State == HAL_CAN_STATE_TIMEOUT || hcan1.State == HAL_CAN_STATE_ERROR){
+      bamboozle++;
+    }else{
+      bamboozle = 0;
+    }
+    
+    if(bamboozle > 8){
+      HAL_CAN_Receive_IT(&hcan1, 0);
+    }
+    
+    if(bamboozle > 12){
+      NVIC_SystemReset();
+    }
+    
+    osDelay(17);    //nice prime number
+  }
+  /* USER CODE END doRxHousekeep */
 }
 
 /* TmrKickDog function */

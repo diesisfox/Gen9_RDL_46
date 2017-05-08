@@ -389,6 +389,11 @@ uint32_t bxCanDoTx(uint8_t fromISR){
 			txFrameBuf.Data[i] = toSend.Data[i];
 		}
 		HAL_CAN_Transmit_IT(hcan_handle);
+        if(fromISR){
+		   xQueueSendFromISR(*rxQ, &toSend, NULL);
+		} else {
+		   xQueueSend(*rxQ, &toSend, portMAX_DELAY);
+		}
 		return HAL_CAN_ERROR_NONE;	// Successful transmission
 	} else {
 		// When CAN is not available for Tx -> return the error code in case there are errors
