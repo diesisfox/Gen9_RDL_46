@@ -53,6 +53,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "can.h"
+#include "can2.h"
 #include "serial.h"
 #include "serial1.h"
 #include "nodeMiscHelpers.h"
@@ -781,7 +782,7 @@ void doSDLog(void const * argument)
 {
   /* USER CODE BEGIN doSDLog */
 	static Can_frame_t newFrame;
-	static FIL logFile;
+	static FIL newFIL;
 	static FATFS newFS;
 	static uint8_t SD_Path[16];
 	static UINT bw;
@@ -828,12 +829,12 @@ void doSDLog(void const * argument)
 		timeStampBuf[6] = '0' + (newTime.Seconds >> 4);
 		timeStampBuf[7] = '0' + (newTime.Seconds & 0xf);
 
-		f_writeBuf(&newFil, "{\"timestamp\":\"");
+		f_writeBuf(&newFIL, "{\"timestamp\":\"", &bw);
 		f_writeBuf(&newFIL, timeStampBuf, &bw);
 		f_writeBuf(&newFIL, "\",\"type\":\"frame\",\"ide\":", &bw);
-		newFrame.isExt ? f_writeBuf(&newFIL, truemsg) : f_writeBuf(&newFIL, falsemsg, &bw);
+		newFrame.isExt ? f_writeBuf(&newFIL, truemsg, &bw) : f_writeBuf(&newFIL, falsemsg, &bw);
 		f_writeBuf(&newFIL, ",\"rtr\":", &bw);
-		newFrame.isRemote ? f_writeBuf(&newFIL, truemsg) : f_writeBuf(&newFIL, falsemsg, &bw);
+		newFrame.isRemote ? f_writeBuf(&newFIL, truemsg, &bw) : f_writeBuf(&newFIL, falsemsg, &bw);
 		f_writeBuf(&newFIL, ",\"dlc\":", &bw);
 		charBuf = toHex(newFrame.dlc);
 		f_write(&newFIL, &charBuf, 1, &bw);
@@ -857,7 +858,7 @@ void doSDLog(void const * argument)
 					f_writeBuf(&newFIL, datamsg, &bw);
 				}
 			}
-			f_writeBuf(&newFIL, "]}\n");
+			f_writeBuf(&newFIL, "]}\n", &bw);
 		}
 		// switch (newFrame.id) {
 		// 	case /* value */:

@@ -64,6 +64,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
 #include "ff_gen_drv.h"
+#include "sd_io.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -71,6 +72,34 @@
 /* Private variables ---------------------------------------------------------*/
 /* Disk status */
 static volatile DSTATUS Stat = STA_NOINIT;
+
+static SD_DEV hSD;
+
+/*  ~~~DSTATUS~~~
+ *  RES_OK = 0,		 0: Successful
+ *  RES_ERROR,		 1: R/W Error
+ *  RES_WRPRT,		 2: Write Protected
+ *  RES_NOTRDY,		 3: Not Ready
+ *  RES_PARERR		 4: Invalid Parameter
+ */
+
+/*  ~~~SDRESULTS~~~
+ *  SD_OK = 0,       0: Function succeeded
+ *  SD_NOINIT,       1: SD not initialized
+ *  SD_ERROR,        2: Disk error
+ *  SD_PARERR,       3: Invalid parameter
+ *  SD_BUSY,         4: Programming busy
+ *  SD_REJECT,       5: Reject data
+ *  SD_NORESPONSE    6: No response
+ */
+
+/*  ~~DRESULT~~
+ * 	RES_OK = 0,		 0: Successful
+ * 	RES_ERROR,		 1: R/W Error
+ * 	RES_WRPRT,		 2: Write Protected
+ * 	RES_NOTRDY,		 3: Not Ready
+ * 	RES_PARERR		 4: Invalid Parameter
+ */
 
 /* USER CODE END DECL */
 
@@ -111,8 +140,24 @@ DSTATUS USER_initialize (
 )
 {
   /* USER CODE BEGIN INIT */
-    Stat = STA_NOINIT;
-    return Stat;
+	SDRESULTS res = SD_Init(&hSD);
+
+	hSD.last_sector = 16777216; //TODO SKETCHY
+
+    switch(res){
+    case SD_OK:
+    	return RES_OK;
+    case SD_NOINIT:
+    case SD_BUSY:
+    	return RES_NOTRDY;
+    case SD_ERROR:
+    case SD_REJECT:
+    case SD_NORESPONSE:
+    	return RES_ERROR;
+    case SD_PARERR:
+    default:
+    	return RES_PARERR;
+    }
   /* USER CODE END INIT */
 }
 
@@ -126,8 +171,21 @@ DSTATUS USER_status (
 )
 {
   /* USER CODE BEGIN STATUS */
-    Stat = STA_NOINIT;
-    return Stat;
+	SDRESULTS res = SD_Status(&hSD);
+	switch(res){
+	case SD_OK:
+		return RES_OK;
+	case SD_NOINIT:
+	case SD_BUSY:
+		return RES_NOTRDY;
+	case SD_ERROR:
+	case SD_REJECT:
+	case SD_NORESPONSE:
+		return RES_ERROR;
+	case SD_PARERR:
+    default:
+		return RES_PARERR;
+	}
   /* USER CODE END STATUS */
 }
 
@@ -147,7 +205,26 @@ DRESULT USER_read (
 )
 {
   /* USER CODE BEGIN READ */
-    return RES_OK;
+	SDRESULTS res;
+	for(int i=0; i<count; i++){
+		res = SD_Read(&hSD, buff+512*i, sector+i, 0, 512);
+		if(res!=SD_OK) break;
+	}
+	switch(res){
+	case SD_OK:
+		return RES_OK;
+	case SD_NOINIT:
+	case SD_BUSY:
+		return RES_NOTRDY;
+	case SD_ERROR:
+	case SD_REJECT:
+	case SD_NORESPONSE:
+		return RES_ERROR;
+	case SD_PARERR:
+    default:
+		return RES_PARERR;
+		return RES_WRPRT;
+	}
   /* USER CODE END READ */
 }
 
@@ -169,7 +246,26 @@ DRESULT USER_write (
 { 
   /* USER CODE BEGIN WRITE */
   /* USER CODE HERE */
-    return RES_OK;
+    SDRESULTS res;
+	for(int i=0; i<count; i++){
+		res = SD_Write(&hSD, (void*)(buff+512*i), sector+i);
+		if(res!=SD_OK) break;
+	}
+	switch(res){
+	case SD_OK:
+		return RES_OK;
+	case SD_NOINIT:
+	case SD_BUSY:
+		return RES_NOTRDY;
+	case SD_ERROR:
+	case SD_REJECT:
+	case SD_NORESPONSE:
+		return RES_ERROR;
+	case SD_PARERR:
+    default:
+		return RES_PARERR;
+		return RES_WRPRT;
+	}
   /* USER CODE END WRITE */
 }
 #endif /* _USE_WRITE == 1 */
@@ -189,8 +285,35 @@ DRESULT USER_ioctl (
 )
 {
   /* USER CODE BEGIN IOCTL */
-    DRESULT res = RES_ERROR;
-    return res;
+    switch(cmd){
+    case CTRL_SYNC:
+    	SPI_Release();
+    	return RES_OK;
+    case GET_SECTOR_COUNT:
+//    	*(DWORD*)buff = hSD.last_sector;
+    	*(DWORD*)buff = 16777216; //HARDCODED for 8GB
+    	return RES_OK;
+    case GET_SECTOR_SIZE:
+    	*(WORD*)buff = 512;
+    	return RES_OK;
+    case CTRL_TRIM:
+    	return RES_OK;
+    //optional below
+    case CTRL_EJECT:
+    case CTRL_FORMAT:
+    case CTRL_LOCK:
+    case CTRL_POWER:
+    case MMC_GET_CID:
+    case MMC_GET_CSD:
+    case MMC_GET_OCR:
+    case MMC_GET_SDSTAT:
+    case MMC_GET_TYPE:
+    case ATA_GET_MODEL:
+    case ATA_GET_REV:
+    case ATA_GET_SN:
+    default:
+    	return RES_PARERR;
+    }
   /* USER CODE END IOCTL */
 }
 #endif /* _USE_IOCTL == 1 */

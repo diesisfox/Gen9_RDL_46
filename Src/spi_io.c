@@ -18,11 +18,12 @@
 
 static SPI_HandleTypeDef* hspi;
 static uint32_t timerStartTick;
-static uint8_t timerOn = 0;
+static uint8_t timerOn;
 static uint32_t timerDuration;
 
 void SPI_IO_Attach(SPI_HandleTypeDef* hspi_in){
 	hspi = hspi_in;
+    timerOn = 0;
 }
 
 /*
@@ -45,22 +46,22 @@ void SPI_Release (void) {
     return;
 }
 
-inline void SPI_CS_Low (void) {
+void SPI_CS_Low (void) {
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, 0);
 }
 
-inline void SPI_CS_High (void){
+void SPI_CS_High (void){
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, 1);
 }
 
-inline void SPI_Freq_High (void) {
+void SPI_Freq_High (void) {
     HAL_SPI_DeInit(hspi);
     hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
 //    hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
     HAL_SPI_Init(hspi);
 }
 
-inline void SPI_Freq_Low (void) {
+void SPI_Freq_Low (void) {
 	HAL_SPI_DeInit(hspi);
 	hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
 	HAL_SPI_Init(hspi);
@@ -72,24 +73,24 @@ void SPI_Timer_On (WORD ms) {
     timerDuration = ms;
 }
 
-inline BOOL SPI_Timer_Status (void) {
+BOOL SPI_Timer_Status (void) {
 //	HAL_
     return ((timerStartTick + timerDuration > HAL_GetTick()) ? TRUE : FALSE);
 }
 
-inline void SPI_Timer_Off (void) {
+void SPI_Timer_Off (void) {
     timerOn = 0;
 }
 
 #ifdef SPI_DEBUG_OSC
-inline void SPI_Debug_Init(void)
+void SPI_Debug_Init(void)
 {
     SIM_SCGC5 |= SIM_SCGC5_PORTA_MASK; // Port A enable
     PORTA_PCR12 = PORT_PCR_MUX(1) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK;
     GPIOA_PDDR |= (1 << 12); // Pin is configured as general-purpose output, for the GPIO function.
     GPIOA_PDOR &= ~(1 << 12); // Off
 }
-inline void SPI_Debug_Mark(void)
+void SPI_Debug_Mark(void)
 {
     GPIOA_PDOR |= (1 << 12); // On
     GPIOA_PDOR &= ~(1 << 12); // Off

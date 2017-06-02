@@ -1168,10 +1168,10 @@
         <group>
             <name>User</name>
             <file>
-                <name>$PROJ_DIR$\..\Src\bsp_driver_sd.c</name>
+                <name>$PROJ_DIR$\..\Src\can.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\Src\can.c</name>
+                <name>$PROJ_DIR$\..\Src\can2.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\fatfs.c</name>
@@ -1186,10 +1186,16 @@
                 <name>$PROJ_DIR$\..\Src\nodeMiscHelpers.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Src\sd_io.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Src\serial.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\serial1.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Src\spi_io.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\stm32f4xx_hal_msp.c</name>
@@ -1199,6 +1205,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Src\stm32f4xx_it.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Src\user_diskio.c</name>
             </file>
         </group>
     </group>
@@ -1252,7 +1261,10 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc_ex.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sd.c</name>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc_ex.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_spi.c</name>
@@ -1269,9 +1281,6 @@
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_wwdg.c</name>
             </file>
-            <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_sdmmc.c</name>
-            </file>
         </group>
     </group>
     <group>
@@ -1286,9 +1295,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\ff_gen_drv.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\drivers\sd_diskio.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\option\syscall.c</name>

@@ -9,6 +9,7 @@
 #include <integer.h>
 #include "sd_io.h"
 #include "ff_gen_drv.h"
+#include "spi_io.h"
 
 #ifdef _M_IX86  // For use over x86
 /*****************************************************************************/
@@ -387,7 +388,7 @@ SDRESULTS SD_Read(SD_DEV *dev, void *dat, DWORD sector, WORD ofs, WORD cnt)
             // I receive the data and I write in user's buffer
             do {
                 *(BYTE*)dat = SPI_RW(0xFF);
-                dat++;
+                (dat) = ((BYTE*)dat) + 1;
             } while(--cnt);
             // Skip remaining
             do { 

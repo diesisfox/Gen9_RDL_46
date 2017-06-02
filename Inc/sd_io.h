@@ -23,7 +23,7 @@
 #if defined(_M_IX86)
 
 #include <stdio.h>
-#include <integer.h>
+#include "integer.h"
 
 /* Results of SD functions */
 typedef enum {
