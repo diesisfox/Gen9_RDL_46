@@ -1,14 +1,17 @@
 /**
+ ******************************************************************************
+  * @file    user_diskio.h
+  * @brief   This file contains the common defines and functions prototypes for  
+  *          the user_diskio driver.
   ******************************************************************************
-  * @file    sd_diskio.h 
-  * @author  MCD Application Team
-  * @version V1.4.1
-  * @date    14-February-2017
-  * @brief   Header for sd_diskio.c module
-  ******************************************************************************
-  * @attention
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * <h2><center>&copy; COPYRIGHT 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
   * modification, are permitted, provided that the following conditions are met:
@@ -43,18 +46,29 @@
   *
   ******************************************************************************
   */
-
+  
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __SD_DISKIO_H
-#define __SD_DISKIO_H
+#ifndef __USER_DISKIO_H
+#define __USER_DISKIO_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif 
+
+/* USER CODE BEGIN 0 */
 
 /* Includes ------------------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-extern Diskio_drvTypeDef  SD_Driver;
+extern Diskio_drvTypeDef  USER_Driver;
 
-#endif /* __SD_DISKIO_H */
+/* USER CODE END 0 */
+   
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __USER_DISKIO_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-

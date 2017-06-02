@@ -340,14 +340,14 @@
                     <state>$PROJ_DIR$/../Inc</state>
                     <state>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Inc</state>
                     <state>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy</state>
-                    <state>$PROJ_DIR$/../Middlewares/Third_Party/FatFs/src/drivers</state>
                     <state>$PROJ_DIR$/../Middlewares/Third_Party/FreeRTOS/Source/portable/IAR/ARM_CM4F</state>
                     <state>$PROJ_DIR$/../Drivers/CMSIS/Device/ST/STM32F4xx/Include</state>
                     <state>$PROJ_DIR$/../Middlewares/Third_Party/FatFs/src</state>
                     <state>$PROJ_DIR$/../Middlewares/Third_Party/FreeRTOS/Source/include</state>
                     <state>$PROJ_DIR$/../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS</state>
                     <state>$PROJ_DIR$/../Drivers/CMSIS/Include</state>
-                <state /><state /><state /><state /><state /><state /><state /><state /><state /><state /></option>
+                    <state />
+                <state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /><state /></option>
                 <option>
                     <name>CCStdIncCheck</name>
                     <state>0</state>
@@ -608,7 +608,7 @@
                 </option>
                 <option>
                     <name>AUserIncludes</name>
-                    <state>$PROJ_DIR$\..\Inc</state>
+                    <state>$PROJ_DIR$\../Inc</state>
                 </option>
                 <option>
                     <name>AExtraOptionsCheckV2</name>
@@ -1031,9 +1031,7 @@
         </group>
         <group>
             <name>User</name>
-            <file>
-                <name>$PROJ_DIR$\..\Src\bsp_driver_sd.c</name>
-            </file>
+            
             <file>
                 <name>$PROJ_DIR$\..\Src\can.c</name>
             </file>
@@ -1064,7 +1062,9 @@
             <file>
                 <name>$PROJ_DIR$\..\Src\stm32f4xx_it.c</name>
             </file>
-        </group>
+        <file>
+                <name>$PROJ_DIR$/../Src/user_diskio.c</name>
+            </file></group>
     </group>
     <group>
         <name>Drivers</name>
@@ -1115,9 +1115,7 @@
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc_ex.c</name>
             </file>
-            <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sd.c</name>
-            </file>
+            
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_spi.c</name>
             </file>
@@ -1133,10 +1131,12 @@
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_wwdg.c</name>
             </file>
-            <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_sdmmc.c</name>
-            </file>
-        </group>
+            
+        <file>
+                <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc_ex.c</name>
+            </file><file>
+                <name>$PROJ_DIR$/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc.c</name>
+            </file></group>
     </group>
     <group>
         <name>Middlewares</name>
@@ -1151,9 +1151,7 @@
             <file>
                 <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\ff_gen_drv.c</name>
             </file>
-            <file>
-                <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\drivers\sd_diskio.c</name>
-            </file>
+            
             <file>
                 <name>$PROJ_DIR$\..\Middlewares\Third_Party\FatFs\src\option\syscall.c</name>
             </file>

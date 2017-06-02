@@ -1,14 +1,16 @@
 /**
+ ******************************************************************************
+  * @file    user_diskio.c
+  * @brief   This file includes a diskio driver skeleton to be completed by the user.
   ******************************************************************************
-  * @file    sd_diskio.c
-  * @author  MCD Application Team
-  * @version V1.4.1
-  * @date    14-February-2017
-  * @brief   SD Disk I/O driver
-  ******************************************************************************
-  * @attention
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * <h2><center>&copy; COPYRIGHT 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
   * modification, are permitted, provided that the following conditions are met:
@@ -42,7 +44,22 @@
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  */ 
+  */
+
+#ifdef USE_OBSOLETE_USER_CODE_SECTION_0
+/* 
+ * Warning: the user section 0 is no more in use (starting from CubeMx version 4.16.0)
+ * To be suppressed in the future. 
+ * Kept to ensure backward compatibility with previous CubeMx versions when 
+ * migrating projects. 
+ * User code previously added there should be copied in the new user sections before 
+ * the section contents can be deleted.
+ */
+/* USER CODE BEGIN 0 */
+/* USER CODE END 0 */
+#endif
+
+/* USER CODE BEGIN DECL */
 
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
@@ -50,32 +67,35 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
 /* Private variables ---------------------------------------------------------*/
 /* Disk status */
 static volatile DSTATUS Stat = STA_NOINIT;
 
+/* USER CODE END DECL */
+
 /* Private function prototypes -----------------------------------------------*/
-DSTATUS SD_initialize (BYTE);
-DSTATUS SD_status (BYTE);
-DRESULT SD_read (BYTE, BYTE*, DWORD, UINT);
+           
+DSTATUS USER_initialize (BYTE pdrv);
+DSTATUS USER_status (BYTE pdrv);
+DRESULT USER_read (BYTE pdrv, BYTE *buff, DWORD sector, UINT count);
 #if _USE_WRITE == 1
-  DRESULT SD_write (BYTE, const BYTE*, DWORD, UINT);
+  DRESULT USER_write (BYTE pdrv, const BYTE *buff, DWORD sector, UINT count);  
 #endif /* _USE_WRITE == 1 */
 #if _USE_IOCTL == 1
-  DRESULT SD_ioctl (BYTE, BYTE, void*);
-#endif  /* _USE_IOCTL == 1 */
-  
-const Diskio_drvTypeDef  SD_Driver =
+  DRESULT USER_ioctl (BYTE pdrv, BYTE cmd, void *buff);
+#endif /* _USE_IOCTL == 1 */
+
+Diskio_drvTypeDef  USER_Driver =
 {
-  SD_initialize,
-  SD_status,
-  SD_read, 
-#if  _USE_WRITE == 1
-  SD_write,
-#endif /* _USE_WRITE == 1 */
-  
+  USER_initialize,
+  USER_status,
+  USER_read, 
+#if  _USE_WRITE
+  USER_write,
+#endif  /* _USE_WRITE == 1 */  
 #if  _USE_IOCTL == 1
-  SD_ioctl,
+  USER_ioctl,
 #endif /* _USE_IOCTL == 1 */
 };
 
@@ -83,151 +103,96 @@ const Diskio_drvTypeDef  SD_Driver =
 
 /**
   * @brief  Initializes a Drive
-  * @param  lun : not used 
+  * @param  pdrv: Physical drive number (0..)
   * @retval DSTATUS: Operation status
   */
-DSTATUS SD_initialize(BYTE lun)
+DSTATUS USER_initialize (
+	BYTE pdrv           /* Physical drive nmuber to identify the drive */
+)
 {
-  Stat = STA_NOINIT;
-  
-  /* Configure the uSD device */
-  if(BSP_SD_Init() == MSD_OK)
-  {
-    Stat &= ~STA_NOINIT;
-  }
-
-  return Stat;
+  /* USER CODE BEGIN INIT */
+    Stat = STA_NOINIT;
+    return Stat;
+  /* USER CODE END INIT */
 }
 
 /**
-  * @brief  Gets Disk Status
-  * @param  lun : not used
+  * @brief  Gets Disk Status 
+  * @param  pdrv: Physical drive number (0..)
   * @retval DSTATUS: Operation status
   */
-DSTATUS SD_status(BYTE lun)
+DSTATUS USER_status (
+	BYTE pdrv       /* Physical drive nmuber to identify the drive */
+)
 {
-  Stat = STA_NOINIT;
-
-  if(BSP_SD_GetCardState() == MSD_OK)
-  {
-    Stat &= ~STA_NOINIT;
-  }
-  
-  return Stat;
+  /* USER CODE BEGIN STATUS */
+    Stat = STA_NOINIT;
+    return Stat;
+  /* USER CODE END STATUS */
 }
 
 /**
-  * @brief  Reads Sector(s)
-  * @param  lun : not used
+  * @brief  Reads Sector(s) 
+  * @param  pdrv: Physical drive number (0..)
   * @param  *buff: Data buffer to store read data
   * @param  sector: Sector address (LBA)
   * @param  count: Number of sectors to read (1..128)
   * @retval DRESULT: Operation result
   */
-DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
+DRESULT USER_read (
+	BYTE pdrv,      /* Physical drive nmuber to identify the drive */
+	BYTE *buff,     /* Data buffer to store read data */
+	DWORD sector,   /* Sector address in LBA */
+	UINT count      /* Number of sectors to read */
+)
 {
-  DRESULT res = RES_ERROR;
-  uint32_t timeout = 100000;
-
-  if(BSP_SD_ReadBlocks((uint32_t*)buff, 
-                       (uint32_t) (sector), 
-                       count, SD_DATATIMEOUT) == MSD_OK)
-  {
-    while(BSP_SD_GetCardState()!= MSD_OK)
-    {
-      if (timeout-- == 0)
-      {
-        return RES_ERROR;
-      }
-    }
-    res = RES_OK;
-  }
-  
-  return res;
+  /* USER CODE BEGIN READ */
+    return RES_OK;
+  /* USER CODE END READ */
 }
 
 /**
-  * @brief  Writes Sector(s)
-  * @param  lun : not used
+  * @brief  Writes Sector(s)  
+  * @param  pdrv: Physical drive number (0..)
   * @param  *buff: Data to be written
   * @param  sector: Sector address (LBA)
   * @param  count: Number of sectors to write (1..128)
   * @retval DRESULT: Operation result
   */
 #if _USE_WRITE == 1
-DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
-{
-  DRESULT res = RES_ERROR;
-  uint32_t timeout = 100000;
-
-  if(BSP_SD_WriteBlocks((uint32_t*)buff, 
-                        (uint32_t)(sector), 
-                        count, SD_DATATIMEOUT) == MSD_OK)
-  {
-    while(BSP_SD_GetCardState()!= MSD_OK)
-    {
-      if (timeout-- == 0)
-      {
-        return RES_ERROR;
-      }
-    }    
-    res = RES_OK;
-  }
-  
-  return res;
+DRESULT USER_write (
+	BYTE pdrv,          /* Physical drive nmuber to identify the drive */
+	const BYTE *buff,   /* Data to be written */
+	DWORD sector,       /* Sector address in LBA */
+	UINT count          /* Number of sectors to write */
+)
+{ 
+  /* USER CODE BEGIN WRITE */
+  /* USER CODE HERE */
+    return RES_OK;
+  /* USER CODE END WRITE */
 }
 #endif /* _USE_WRITE == 1 */
 
 /**
-  * @brief  I/O control operation
-  * @param  lun : not used
+  * @brief  I/O control operation  
+  * @param  pdrv: Physical drive number (0..)
   * @param  cmd: Control code
   * @param  *buff: Buffer to send/receive control data
   * @retval DRESULT: Operation result
   */
 #if _USE_IOCTL == 1
-DRESULT SD_ioctl(BYTE lun, BYTE cmd, void *buff)
+DRESULT USER_ioctl (
+	BYTE pdrv,      /* Physical drive nmuber (0..) */
+	BYTE cmd,       /* Control code */
+	void *buff      /* Buffer to send/receive control data */
+)
 {
-  DRESULT res = RES_ERROR;
-  BSP_SD_CardInfo CardInfo;
-  
-  if (Stat & STA_NOINIT) return RES_NOTRDY;
-  
-  switch (cmd)
-  {
-  /* Make sure that no pending write process */
-  case CTRL_SYNC :
-    res = RES_OK;
-    break;
-  
-  /* Get number of sectors on the disk (DWORD) */
-  case GET_SECTOR_COUNT :
-    BSP_SD_GetCardInfo(&CardInfo);
-    *(DWORD*)buff = CardInfo.LogBlockNbr;
-    res = RES_OK;
-    break;
-  
-  /* Get R/W sector size (WORD) */
-  case GET_SECTOR_SIZE :
-    BSP_SD_GetCardInfo(&CardInfo);
-    *(WORD*)buff = CardInfo.LogBlockSize;
-    res = RES_OK;
-    break;
-  
-  /* Get erase block size in unit of sector (DWORD) */
-  case GET_BLOCK_SIZE :
-    BSP_SD_GetCardInfo(&CardInfo);
-    *(DWORD*)buff = CardInfo.LogBlockSize;
-    res = RES_OK;
-    break;
-  
-  default:
-    res = RES_PARERR;
-  }
-  
-  return res;
+  /* USER CODE BEGIN IOCTL */
+    DRESULT res = RES_ERROR;
+    return res;
+  /* USER CODE END IOCTL */
 }
 #endif /* _USE_IOCTL == 1 */
-  
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
