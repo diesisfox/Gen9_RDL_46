@@ -731,6 +731,7 @@ void doProcessCan(void const * argument)
 	for(;;){
 		static Can_frame_t newFrame;
 		xQueueReceive(mainCanRxQHandle, &newFrame, portMAX_DELAY);
+        xQueueSend(SDLogCanQueueHandle, &newFrame, portMAX_DELAY);
 
 		frameToBase64(&newFrame);
 		// TODO: Add RTC Timestamp (if radio baud rate allows)
