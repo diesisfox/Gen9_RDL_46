@@ -353,8 +353,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     /**UART4 GPIO Configuration    
     PA0-WKUP     ------> UART4_TX
     PA1     ------> UART4_RX
-    PB0     ------> UART4_CTS
-    PA15     ------> UART4_RTS 
+    PB0     ------> UART4_CTS 
     */
     GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -369,13 +368,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_15;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* UART4 DMA Init */
     /* UART4_RX Init */
@@ -501,10 +493,9 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     /**UART4 GPIO Configuration    
     PA0-WKUP     ------> UART4_TX
     PA1     ------> UART4_RX
-    PB0     ------> UART4_CTS
-    PA15     ------> UART4_RTS 
+    PB0     ------> UART4_CTS 
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_15);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_1);
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0);
 
