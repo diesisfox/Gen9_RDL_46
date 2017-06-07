@@ -82,9 +82,11 @@ osThreadId ApplicationHandle;
 osThreadId Can_ProcessorHandle;
 osThreadId rxHousekeepHandle;
 osThreadId SDLogHandle;
+osThreadId radioTxHandle;
 osMessageQId mainCanTxQHandle;
 osMessageQId mainCanRxQHandle;
 osMessageQId SDLogCanQueueHandle;
+osMessageQId radioTxQHandle;
 osTimerId WWDGTmrHandle;
 osTimerId HBTmrHandle;
 osMutexId swMtxHandle;
@@ -111,6 +113,7 @@ void doApplication(void const * argument);
 void doProcessCan(void const * argument);
 void doRxHousekeep(void const * argument);
 void doSDLog(void const * argument);
+void doRadioTx(void const * argument);
 void TmrKickDog(void const * argument);
 void TmrSendHB(void const * argument);
 
@@ -251,6 +254,10 @@ int main(void)
   osThreadDef(SDLog, doSDLog, osPriorityBelowNormal, 0, 2048);
   SDLogHandle = osThreadCreate(osThread(SDLog), NULL);
 
+  /* definition and creation of radioTx */
+  osThreadDef(radioTx, doRadioTx, osPriorityAboveNormal, 0, 512);
+  radioTxHandle = osThreadCreate(osThread(radioTx), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -267,6 +274,10 @@ int main(void)
   /* definition and creation of SDLogCanQueue */
   osMessageQDef(SDLogCanQueue, 64, Can_frame_t);
   SDLogCanQueueHandle = osMessageCreate(osMessageQ(SDLogCanQueue), NULL);
+
+  /* definition and creation of radioTxQ */
+  osMessageQDef(radioTxQ, 64, Can_frame_t);
+  radioTxQHandle = osMessageCreate(osMessageQ(radioTxQ), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -682,21 +693,15 @@ void doProcessCan(void const * argument)
 	for(;;){
 		static Can_frame_t newFrame;
 		xQueueReceive(mainCanRxQHandle, &newFrame, portMAX_DELAY);
-        xQueueSend(SDLogCanQueueHandle, &newFrame, portMAX_DELAY);
-
-		frameToBase64(&newFrame);
-		// TODO: Add RTC Timestamp (if radio baud rate allows)
+        xQueueSend(SDLogCanQueueHandle, &newFrame, 0);
+        xQueueSend(radioTxQHandle, &newFrame, 0);
 
 		uint32_t canID = newFrame.id;	// canID container //TODO why byte
-#ifdef __JAMES__
-		Serial2_writeBuf("Got a frame.");
-#endif
 		if(canID == p2pOffset || canID == selfNodeID + p2pOffset){
 			// Multicast or unicast command received!
 			taskENTER_CRITICAL();
 			executeCommand(newFrame.Data[0]);
 			taskEXIT_CRITICAL();
-			// XXX 1: Additional application-level message parsing
 			// Note: Any application-level messages should be either mutex protected or passed via queue!
 		}
 	}
@@ -776,10 +781,8 @@ void doSDLog(void const * argument)
 
 	ret = f_mount(&newFS, SD_Path, 0);
     ret = f_mkdir(dir0Name);
-    if(ret!=FR_OK || ret!=FR_EXIST){
-      for(;;){
-        osDelay(10000);
-      }
+    if(ret!=FR_OK && ret!=FR_EXIST){
+      vTaskSuspend(NULL);
     }
     ret = f_chdir(dir0Name);
     ret = f_mkdir(dir1Name);
@@ -846,6 +849,20 @@ void doSDLog(void const * argument)
         first=0;
 	}
   /* USER CODE END doSDLog */
+}
+
+/* doRadioTx function */
+void doRadioTx(void const * argument)
+{
+  /* USER CODE BEGIN doRadioTx */
+  static Can_frame_t newFrame;
+  /* Infinite loop */
+  for(;;)
+  {
+    xQueueReceive(radioTxQHandle, &newFrame, portMAX_DELAY);
+    frameToBase64(&newFrame);
+  }
+  /* USER CODE END doRadioTx */
 }
 
 /* TmrKickDog function */
