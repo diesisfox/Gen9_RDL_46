@@ -1171,9 +1171,6 @@
                 <name>$PROJ_DIR$\..\Src\can.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\Src\can2.c</name>
-            </file>
-            <file>
                 <name>$PROJ_DIR$\..\Src\fatfs.c</name>
             </file>
             <file>

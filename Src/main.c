@@ -53,7 +53,6 @@
 
 /* USER CODE BEGIN Includes */
 #include "can.h"
-#include "can2.h"
 #include "serial.h"
 #include "serial1.h"
 #include "nodeMiscHelpers.h"
@@ -65,7 +64,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
-CAN_HandleTypeDef hcan2;
 
 RTC_HandleTypeDef hrtc;
 
@@ -131,22 +129,16 @@ void intToHex(uint32_t input, uint8_t *str, int length){
 void HAL_CAN_TxCpltCallback(CAN_HandleTypeDef* hcan){
 	if (hcan == &hcan1)
 		CAN1_TxCpltCallback(hcan);
-	else if (hcan == &hcan2)
-		CAN2_TxCpltCallback(hcan);
 }
 
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan){
 	if (hcan == &hcan1)
 		CAN1_RxCpltCallback(hcan);
-    else if (hcan == &hcan2)
-		CAN2_RxCpltCallback(hcan);
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan){
 	if (hcan == &hcan1)
 		CAN1_ErrorCallback(hcan);
-    else if (hcan == &hcan2)
-		CAN2_ErrorCallback(hcan);
 }
 /* USER CODE END PFP */
 
@@ -192,7 +184,7 @@ int main(void)
 	Serial2_begin();
 
 	/* init code for FATFS */
-	MX_FATFS_Init();
+	
 
 	Serial1_begin();
 
@@ -381,29 +373,6 @@ static void MX_CAN1_Init(void)
   hcan1.Init.RFLM = DISABLE;
   hcan1.Init.TXFP = DISABLE;
   if (HAL_CAN_Init(&hcan1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* CAN2 init function */
-static void MX_CAN2_Init(void)
-{
-
-  hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
-  hcan2.Init.Mode = CAN_MODE_NORMAL;
-  hcan2.Init.SJW = CAN_SJW_1TQ;
-  hcan2.Init.BS1 = CAN_BS1_1TQ;
-  hcan2.Init.BS2 = CAN_BS2_1TQ;
-  hcan2.Init.TTCM = DISABLE;
-  hcan2.Init.ABOM = DISABLE;
-  hcan2.Init.AWUM = DISABLE;
-  hcan2.Init.NART = DISABLE;
-  hcan2.Init.RFLM = DISABLE;
-  hcan2.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&hcan2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -631,12 +600,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB14 PB15 
-                           PB3 PB4 PB5 PB6 
-                           PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_14|GPIO_PIN_15 
-                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6 
-                          |GPIO_PIN_7;
+  /*Configure GPIO pins : PB1 PB2 PB12 PB13 
+                           PB14 PB15 PB3 PB4 
+                           PB5 PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12|GPIO_PIN_13 
+                          |GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4 
+                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -802,14 +771,16 @@ void doSDLog(void const * argument)
 	dir2Name[1] = '0' + (newDate.Month & 0xf);
     dir3Name[0] = '0' + (newDate.Date >> 4);
 	dir3Name[1] = '0' + (newDate.Date & 0xf);
+    
+    MX_FATFS_Init();
 
 	ret = f_mount(&newFS, SD_Path, 0);
     ret = f_mkdir(dir0Name);
-//    if(ret!=FR_OK || ret!=FR_EXIST){
-//      for(;;){
-//        osDelay(10000);
-//      }
-//    }
+    if(ret!=FR_OK || ret!=FR_EXIST){
+      for(;;){
+        osDelay(10000);
+      }
+    }
     ret = f_chdir(dir0Name);
     ret = f_mkdir(dir1Name);
     ret = f_chdir(dir1Name);
