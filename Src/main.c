@@ -887,12 +887,12 @@ void doCmd(void const * argument)
 	RTC_DateTypeDef newDate;
 	RTC_TimeTypeDef newTime;
 	uint8_t scanBuf[12];
-	uint8_t timeBuf[] = "20??/??/?? ??:??:??\n"
+	uint8_t timeBuf[] = "20?? ?? ?? ??:??:??\n";
 	/* Infinite loop */
 	for(;;){
 		if(Serial2_available()){
 			switch (Serial2_read()) {
-			case T:
+			case 'T':
 				xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
 				Serial2_writeBuf("set rtc time:\ntype [yymmddhhmmss] pls\n");
 				xSemaphoreGive(vcpMtxHandle);
@@ -911,7 +911,7 @@ void doCmd(void const * argument)
 						valid = 0;
 						break;
 					}
-					scanBuf[i] -= '0'
+					scanBuf[i] -= '0';
 				}
 				if(valid){
 					newDate.Year = scanBuf[0]<<4 | scanBuf[1];
@@ -925,8 +925,11 @@ void doCmd(void const * argument)
 					HAL_RTC_SetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
 					xSemaphoreGive(rtcMtxHandle);
 				}
+                xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
+                Serial2_writeBuf("time set!\n");
+                xSemaphoreGive(vcpMtxHandle);
 				break;
-			case t:
+			case 't':
 				xSemaphoreTake(rtcMtxHandle, portMAX_DELAY);
 				HAL_RTC_GetTime(&hrtc, &newTime, RTC_FORMAT_BCD);
 				HAL_RTC_GetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
@@ -947,6 +950,7 @@ void doCmd(void const * argument)
 				Serial2_writeBuf("the rtc time is now: ");
 				Serial2_writeBuf(timeBuf);
 				xSemaphoreGive(vcpMtxHandle);
+                break;
 			default:
 				xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
 				Serial2_writeBuf("invalid command.\n");

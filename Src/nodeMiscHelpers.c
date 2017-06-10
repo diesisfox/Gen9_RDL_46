@@ -226,7 +226,6 @@ void frameToBase64(Can_frame_t *newFrame){
 			frameString[4+i] = newFrame->Data[i] << 3;
 		}
 		Serial1_writeBytes(encodedString, base64encode(4+newFrame->dlc));
-		Serial2_writeBytes(encodedString, base64encode(4+newFrame->dlc));
 //		Serial2_writeBuf("printed frame\n");
 	}else{
 		frameString[0] = (newFrame->id >> 3) & 0xff;
@@ -236,7 +235,6 @@ void frameToBase64(Can_frame_t *newFrame){
 			frameString[2+i] = newFrame->Data[i] << 5;
 		}
 		Serial1_writeBytes(encodedString, base64encode(2+newFrame->dlc));
-		Serial2_writeBytes(encodedString, base64encode(2+newFrame->dlc));
 //		Serial2_writeBuf("printed frame\n");
 	}
 }
