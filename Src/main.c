@@ -5,41 +5,41 @@
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2017 STMicroelectronics International N.V.
   * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without 
+  * Redistribution and use in source and binary forms, with or without
   * modification, are permitted, provided that the following conditions are met:
   *
-  * 1. Redistribution of source code must retain the above copyright notice, 
+  * 1. Redistribution of source code must retain the above copyright notice,
   *    this list of conditions and the following disclaimer.
   * 2. Redistributions in binary form must reproduce the above copyright notice,
   *    this list of conditions and the following disclaimer in the documentation
   *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other 
-  *    contributors to this software may be used to endorse or promote products 
+  * 3. Neither the name of STMicroelectronics nor the names of other
+  *    contributors to this software may be used to endorse or promote products
   *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this 
+  * 4. This software, including modifications and/or derivative works of this
   *    software, must execute solely and exclusively on microcontroller or
   *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under 
-  *    this license is void and will automatically terminate your rights under 
-  *    this license. 
+  * 5. Redistribution and use of this software other than as permitted under
+  *    this license is void and will automatically terminate your rights under
+  *    this license.
   *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
   * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
   * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
   * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
   * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
@@ -83,6 +83,7 @@ osThreadId Can_ProcessorHandle;
 osThreadId rxHousekeepHandle;
 osThreadId SDLogHandle;
 osThreadId radioTxHandle;
+osThreadId cmdHandle;
 osMessageQId mainCanTxQHandle;
 osMessageQId mainCanRxQHandle;
 osMessageQId SDLogCanQueueHandle;
@@ -92,6 +93,7 @@ osTimerId HBTmrHandle;
 osMutexId swMtxHandle;
 osMutexId sdMtxHandle;
 osMutexId rtcMtxHandle;
+osMutexId vcpMtxHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -114,6 +116,7 @@ void doProcessCan(void const * argument);
 void doRxHousekeep(void const * argument);
 void doSDLog(void const * argument);
 void doRadioTx(void const * argument);
+void doCmd(void const * argument);
 void TmrKickDog(void const * argument);
 void TmrSendHB(void const * argument);
 
@@ -187,7 +190,7 @@ int main(void)
 	Serial2_begin();
 
 	/* init code for FATFS */
-	
+
 
 	Serial1_begin();
 
@@ -213,6 +216,10 @@ int main(void)
   /* definition and creation of rtcMtx */
   osMutexDef(rtcMtx);
   rtcMtxHandle = osMutexCreate(osMutex(rtcMtx));
+
+  /* definition and creation of vcpMtx */
+  osMutexDef(vcpMtx);
+  vcpMtxHandle = osMutexCreate(osMutex(vcpMtx));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -258,6 +265,10 @@ int main(void)
   osThreadDef(radioTx, doRadioTx, osPriorityAboveNormal, 0, 512);
   radioTxHandle = osThreadCreate(osThread(radioTx), NULL);
 
+  /* definition and creation of cmd */
+  osThreadDef(cmd, doCmd, osPriorityNormal, 0, 512);
+  cmdHandle = osThreadCreate(osThread(cmd), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -282,11 +293,11 @@ int main(void)
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
- 
+
 
   /* Start scheduler */
   osKernelStart();
-  
+
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -311,13 +322,13 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
-    /**Configure the main internal regulator output voltage 
+    /**Configure the main internal regulator output voltage
     */
   __HAL_RCC_PWR_CLK_ENABLE();
 
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -334,7 +345,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -355,11 +366,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time 
+    /**Configure the Systick interrupt time
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick 
+    /**Configure the Systick
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -397,7 +408,7 @@ static void MX_RTC_Init(void)
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
 
-    /**Initialize RTC Only 
+    /**Initialize RTC Only
     */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -411,7 +422,7 @@ static void MX_RTC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initialize RTC and set the Time and Date 
+    /**Initialize RTC and set the Time and Date
     */
   if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x32F2){
   sTime.Hours = 0x13;
@@ -516,10 +527,10 @@ static void MX_WWDG_Init(void)
 
 }
 
-/** 
+/**
   * Enable DMA controller clock
   */
-static void MX_DMA_Init(void) 
+static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -540,13 +551,13 @@ static void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
-        * Free pins are configured automatically as Analog (this feature is enabled through 
+        * Free pins are configured automatically as Analog (this feature is enabled through
         * the Code Generation settings)
 */
 static void MX_GPIO_Init(void)
@@ -573,11 +584,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC0 PC1 PC5 PC6 
-                           PC7 PC8 PC9 PC10 
+  /*Configure GPIO pins : PC0 PC1 PC5 PC6
+                           PC7 PC8 PC9 PC10
                            PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10
                           |GPIO_PIN_11|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -596,9 +607,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA6 PA7 PA8 PA9 
+  /*Configure GPIO pins : PA6 PA7 PA8 PA9
                            PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9 
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9
                           |GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -611,12 +622,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB12 PB13 
-                           PB14 PB15 PB3 PB4 
-                           PB5 PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12|GPIO_PIN_13 
-                          |GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4 
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB12
+                           PB13 PB14 PB15 PB3
+                           PB4 PB5 PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12
+                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -668,7 +679,6 @@ void doApplication(void const * argument)
 							newFrame.dlc = j;
 							if(parseFrame(i, j, &newFrame)){
 								bxCan_sendFrame(&newFrame);
-								Serial2_writeBuf("Sent a frame\n");
 								break;
 							}
 						}
@@ -682,7 +692,7 @@ void doApplication(void const * argument)
 			osDelay(1);
 		}
 	}
-  /* USER CODE END 5 */ 
+  /* USER CODE END 5 */
 }
 
 /* doProcessCan function */
@@ -762,8 +772,10 @@ void doSDLog(void const * argument)
 	static uint8_t timeStampBuf[] = "xx:xx:xx";
     uint8_t first = 1;
 
+	xSemaphoreTake(rtcMtxHandle, portMAX_DELAY);
 	HAL_RTC_GetTime(&hrtc, &newTime, RTC_FORMAT_BCD);
     HAL_RTC_GetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
+	xSemaphoreGive(rtcMtxHandle);
 	fileName[0] = '0' + (newTime.Hours >> 4);
 	fileName[1] = '0' + (newTime.Hours & 0xf);
 	fileName[3] = '0' + (newTime.Minutes >> 4);
@@ -776,7 +788,7 @@ void doSDLog(void const * argument)
 	dir2Name[1] = '0' + (newDate.Month & 0xf);
     dir3Name[0] = '0' + (newDate.Date >> 4);
 	dir3Name[1] = '0' + (newDate.Date & 0xf);
-    
+
     MX_FATFS_Init();
 
 	ret = f_mount(&newFS, SD_Path, 0);
@@ -792,7 +804,7 @@ void doSDLog(void const * argument)
     ret = f_mkdir(dir3Name);
     ret = f_chdir(dir3Name);
 	ret = f_open(&newFIL, fileName, FA_CREATE_ALWAYS | FA_WRITE);
-    
+
     f_writeBuf(&newFIL, "{\"entries\":[\n\n]}", &bw);
     f_sync(&newFIL);
 
@@ -800,8 +812,11 @@ void doSDLog(void const * argument)
 	for(;;){
 		xQueueReceive(SDLogCanQueueHandle, &newFrame, portMAX_DELAY);
 
+		xSemaphoreTake(rtcMtxHandle, portMAX_DELAY);
 		HAL_RTC_GetTime(&hrtc, &newTime, RTC_FORMAT_BCD);
         HAL_RTC_GetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
+		xSemaphoreGive(rtcMtxHandle);
+
 		timeStampBuf[0] = '0' + (newTime.Hours >> 4);
 		timeStampBuf[1] = '0' + (newTime.Hours & 0xf);
 		timeStampBuf[3] = '0' + (newTime.Minutes >> 4);
@@ -863,6 +878,86 @@ void doRadioTx(void const * argument)
     frameToBase64(&newFrame);
   }
   /* USER CODE END doRadioTx */
+}
+
+/* doCmd function */
+void doCmd(void const * argument)
+{
+	/* USER CODE BEGIN doCmd */
+	RTC_DateTypeDef newDate;
+	RTC_TimeTypeDef newTime;
+	uint8_t scanBuf[12];
+	uint8_t timeBuf[] = "20??/??/?? ??:??:??\n"
+	/* Infinite loop */
+	for(;;){
+		if(Serial2_available()){
+			switch (Serial2_read()) {
+			case T:
+				xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
+				Serial2_writeBuf("set rtc time:\ntype [yymmddhhmmss] pls\n");
+				xSemaphoreGive(vcpMtxHandle);
+				while (Serial2_available() < 12) {
+					osDelay(100);
+				}
+				for (uint8_t i = 0; i < 12; i++) {
+					scanBuf[i] = Serial2_read();
+				}
+				uint8_t valid = 1;
+				for (uint8_t i = 0; i < 12; i++) {
+					if(scanBuf[i] > '9' || scanBuf[i] < '0'){
+						xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
+						Serial2_writeBuf("you dun goofd\n");
+						xSemaphoreGive(vcpMtxHandle);
+						valid = 0;
+						break;
+					}
+					scanBuf[i] -= '0'
+				}
+				if(valid){
+					newDate.Year = scanBuf[0]<<4 | scanBuf[1];
+					newDate.Month = scanBuf[2]<<4 | scanBuf[3];
+					newDate.Date = scanBuf[4]<<4 | scanBuf[5];
+					newTime.Hours = scanBuf[6]<<4 | scanBuf[7];
+					newTime.Minutes = scanBuf[8]<<4 | scanBuf[9];
+					newTime.Seconds = scanBuf[10]<<4 | scanBuf[11];
+					xSemaphoreTake(rtcMtxHandle, portMAX_DELAY);
+					HAL_RTC_SetTime(&hrtc, &newTime, RTC_FORMAT_BCD);
+					HAL_RTC_SetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
+					xSemaphoreGive(rtcMtxHandle);
+				}
+				break;
+			case t:
+				xSemaphoreTake(rtcMtxHandle, portMAX_DELAY);
+				HAL_RTC_GetTime(&hrtc, &newTime, RTC_FORMAT_BCD);
+				HAL_RTC_GetDate(&hrtc, &newDate, RTC_FORMAT_BCD);
+				xSemaphoreGive(rtcMtxHandle);
+				timeBuf[2] = '0'+(newDate.Year>>4);
+				timeBuf[3] = '0'+(newDate.Year&0xf);
+				timeBuf[5] = '0'+(newDate.Month>>4);
+				timeBuf[6] = '0'+(newDate.Month&0xf);
+				timeBuf[8] = '0'+(newDate.Date>>4);
+				timeBuf[9] = '0'+(newDate.Date&0xf);
+				timeBuf[11] = '0'+(newTime.Hours>>4);
+				timeBuf[12] = '0'+(newTime.Hours&0xf);
+				timeBuf[14] = '0'+(newTime.Minutes>>4);
+				timeBuf[15] = '0'+(newTime.Minutes&0xf);
+				timeBuf[17] = '0'+(newTime.Seconds>>4);
+				timeBuf[18] = '0'+(newTime.Seconds&0xf);
+				xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
+				Serial2_writeBuf("the rtc time is now: ");
+				Serial2_writeBuf(timeBuf);
+				xSemaphoreGive(vcpMtxHandle);
+			default:
+				xSemaphoreTake(vcpMtxHandle, portMAX_DELAY);
+				Serial2_writeBuf("invalid command.\n");
+				xSemaphoreGive(vcpMtxHandle);
+				break;
+			}
+		}else{
+			osDelay(100);
+		}
+	}
+  /* USER CODE END doCmd */
 }
 
 /* TmrKickDog function */
@@ -950,7 +1045,7 @@ void _Error_Handler(char * file, int line)
   while(1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */ 
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -975,10 +1070,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
