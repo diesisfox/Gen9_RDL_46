@@ -405,8 +405,10 @@ uint32_t bxCanDoTx(uint8_t fromISR){
  * 			>0 - CAN error
  */
 extern osMessageQId SDLogCanQueueHandle;
+extern osMessageQId radioTxQHandle;
 int bxCan_sendFrame(Can_frame_t *frame){
     xQueueSend(SDLogCanQueueHandle, frame, 0);
+    xQueueSend(radioTxQHandle, frame, 0);
 	UBaseType_t fail = xQueueSend(*txQ, frame, 0);
 	if(fail == pdPASS){
 		// Only try to transmit if message successfully placed onto Tx Q
