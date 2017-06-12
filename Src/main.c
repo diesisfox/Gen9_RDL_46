@@ -655,8 +655,6 @@ static void MX_GPIO_Init(void)
 /* doApplication function */
 void doApplication(void const * argument)
 {
-  /* init code for FATFS */
-  MX_FATFS_Init();
 
   /* USER CODE BEGIN 5 */
 	uint8_t startingBytes[2][9] = {

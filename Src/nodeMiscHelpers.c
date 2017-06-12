@@ -154,7 +154,7 @@ inline void soft_shutdown(void(*usr_clbk)()){
 }
 
 inline void waitTilAvail(unsigned int length){ //blocks current taks (runs others) until true
-	while(Serial2_available() < length){
+	while(Serial1_available() < length){
 		osDelay(1);
 	}
 }
@@ -277,33 +277,33 @@ static uint8_t decodeString(uint8_t clusters){
 	for(uint8_t i=0; i<clusters; i++){ //processed in fours so incomplete frames don't block IO
 		waitTilAvail(4);
 		uint8_t tempchar;
-		tempchar = b64ToBits(unreplace(Serial2_peek()));
+		tempchar = b64ToBits(unreplace(Serial1_peek()));
 		if(tempchar < 64){
 			decodedString[3*i+0] = tempchar << 2;
-			Serial2_read();
+			Serial1_read();
 		}else{return 0xff;}
-		tempchar = b64ToBits(unreplace(Serial2_peek()));
+		tempchar = b64ToBits(unreplace(Serial1_peek()));
 		if(tempchar < 64){
 			decodedString[3*i+0] |= tempchar >> 4;
 			decodedString[3*i+1] = tempchar << 4;
-			Serial2_read();
+			Serial1_read();
 		}else{return 0xff;}
-		tempchar = b64ToBits(unreplace(Serial2_peek()));
+		tempchar = b64ToBits(unreplace(Serial1_peek()));
 		if(tempchar < ((i==clusters-1)?65:64)){
 			if(tempchar == 64){
 				padding++; tempchar = 0;
 			}
 			decodedString[3*i+1] |= tempchar >> 2;
 			decodedString[3*i+2] = tempchar << 6;
-			Serial2_read();
+			Serial1_read();
 		}else{return 0xff;}
-		tempchar = b64ToBits(unreplace(Serial2_peek()));
+		tempchar = b64ToBits(unreplace(Serial1_peek()));
 		if(tempchar < ((i==clusters-1)?65:64)){
 			if(tempchar == 64){
 				padding++; tempchar = 0;
 			}
 			decodedString[3*i+2] |= tempchar;
-			Serial2_read();
+			Serial1_read();
 		}else{return 0xff;}
 	}
 	return padding;
