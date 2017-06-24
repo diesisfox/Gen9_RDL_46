@@ -64,6 +64,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
+CAN_HandleTypeDef hcan2;
 
 RTC_HandleTypeDef hrtc;
 
@@ -84,6 +85,7 @@ osThreadId rxHousekeepHandle;
 osThreadId SDLogHandle;
 osThreadId radioTxHandle;
 osThreadId cmdHandle;
+osThreadId SDRecoveryHandle;
 osMessageQId mainCanTxQHandle;
 osMessageQId mainCanRxQHandle;
 osMessageQId SDLogCanQueueHandle;
@@ -116,6 +118,7 @@ void doRxHousekeep(void const * argument);
 void doSDLog(void const * argument);
 void doRadioTx(void const * argument);
 void doCmd(void const * argument);
+void doSDRecovery(void const * argument);
 void TmrKickDog(void const * argument);
 void TmrSendHB(void const * argument);
 
@@ -267,17 +270,21 @@ int main(void)
   osThreadDef(cmd, doCmd, osPriorityNormal, 0, 512);
   cmdHandle = osThreadCreate(osThread(cmd), NULL);
 
+  /* definition and creation of SDRecovery */
+  osThreadDef(SDRecovery, doSDRecovery, osPriorityBelowNormal, 0, 512);
+  SDRecoveryHandle = osThreadCreate(osThread(SDRecovery), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* Create the queue(s) */
   /* definition and creation of mainCanTxQ */
-  osMessageQDef(mainCanTxQ, 32, Can_frame_t);
+  osMessageQDef(mainCanTxQ, 64, Can_frame_t);
   mainCanTxQHandle = osMessageCreate(osMessageQ(mainCanTxQ), NULL);
 
   /* definition and creation of mainCanRxQ */
-  osMessageQDef(mainCanRxQ, 32, Can_frame_t);
+  osMessageQDef(mainCanRxQ, 64, Can_frame_t);
   mainCanRxQHandle = osMessageCreate(osMessageQ(mainCanRxQ), NULL);
 
   /* definition and creation of SDLogCanQueue */
@@ -393,6 +400,29 @@ static void MX_CAN1_Init(void)
   hcan1.Init.RFLM = DISABLE;
   hcan1.Init.TXFP = DISABLE;
   if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* CAN2 init function */
+static void MX_CAN2_Init(void)
+{
+
+  hcan2.Instance = CAN2;
+  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Mode = CAN_MODE_NORMAL;
+  hcan2.Init.SJW = CAN_SJW_1TQ;
+  hcan2.Init.BS1 = CAN_BS1_1TQ;
+  hcan2.Init.BS2 = CAN_BS2_1TQ;
+  hcan2.Init.TTCM = DISABLE;
+  hcan2.Init.ABOM = DISABLE;
+  hcan2.Init.AWUM = DISABLE;
+  hcan2.Init.NART = DISABLE;
+  hcan2.Init.RFLM = DISABLE;
+  hcan2.Init.TXFP = DISABLE;
+  if (HAL_CAN_Init(&hcan2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -592,9 +622,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : XB_CS_Pin RTS_Pin */
-  GPIO_InitStruct.Pin = XB_CS_Pin|RTS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : PA4 PA6 PA7 PA8 
+                           PA9 PA10 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8 
+                          |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -605,14 +637,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA6 PA7 PA8 PA9 
-                           PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9 
-                          |GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pin : SD_CS_Pin */
   GPIO_InitStruct.Pin = SD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -620,12 +644,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB12 
-                           PB13 PB14 PB15 PB3 
-                           PB4 PB5 PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12 
-                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB14 
+                           PB15 PB3 PB4 PB5 
+                           PB6 PB7 PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_14 
+                          |GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -635,12 +659,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : XB_RST_Pin DTR_Pin */
-  GPIO_InitStruct.Pin = XB_RST_Pin|DTR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
@@ -655,6 +673,8 @@ static void MX_GPIO_Init(void)
 /* doApplication function */
 void doApplication(void const * argument)
 {
+  /* init code for FATFS */
+  MX_FATFS_Init();
 
   /* USER CODE BEGIN 5 */
 	uint8_t startingBytes[2][9] = {
@@ -959,6 +979,18 @@ void doCmd(void const * argument)
 		}
 	}
   /* USER CODE END doCmd */
+}
+
+/* doSDRecovery function */
+void doSDRecovery(void const * argument)
+{
+  /* USER CODE BEGIN doSDRecovery */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END doSDRecovery */
 }
 
 /* TmrKickDog function */
