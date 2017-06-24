@@ -276,6 +276,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  vTaskSuspend(SDLogHandle);
   /* USER CODE END RTOS_THREADS */
 
   /* Create the queue(s) */
@@ -681,7 +682,7 @@ void doApplication(void const * argument)
 	/* Infinite loop */
 	for(;;){
 		if(Serial1_available()){
-			if(getSelfState() == ACTIVE){
+//			if(getSelfState() == ACTIVE){
 				static Can_frame_t newFrame;
 				newFrame.isRemote = 0; //just to make sure
 				uint8_t start = Serial1_read();
@@ -698,9 +699,9 @@ void doApplication(void const * argument)
 					}
 				}
 				Serial2_write(Serial1_available());
-			}else{
-				Serial1_read();
-			}
+//			}else{
+//				Serial1_read();
+//			}
 		}else{
 			osDelay(1);
 		}
