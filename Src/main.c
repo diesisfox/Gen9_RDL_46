@@ -5,41 +5,41 @@
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
+  * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V.
+  * Copyright (c) 2017 STMicroelectronics International N.V. 
   * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without
+  * Redistribution and use in source and binary forms, with or without 
   * modification, are permitted, provided that the following conditions are met:
   *
-  * 1. Redistribution of source code must retain the above copyright notice,
+  * 1. Redistribution of source code must retain the above copyright notice, 
   *    this list of conditions and the following disclaimer.
   * 2. Redistributions in binary form must reproduce the above copyright notice,
   *    this list of conditions and the following disclaimer in the documentation
   *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other
-  *    contributors to this software may be used to endorse or promote products
+  * 3. Neither the name of STMicroelectronics nor the names of other 
+  *    contributors to this software may be used to endorse or promote products 
   *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this
+  * 4. This software, including modifications and/or derivative works of this 
   *    software, must execute solely and exclusively on microcontroller or
   *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under
-  *    this license is void and will automatically terminate your rights under
-  *    this license.
+  * 5. Redistribution and use of this software other than as permitted under 
+  *    this license is void and will automatically terminate your rights under 
+  *    this license. 
   *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
   * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
   * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
   * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
   * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
@@ -85,7 +85,6 @@ osThreadId rxHousekeepHandle;
 osThreadId SDLogHandle;
 osThreadId radioTxHandle;
 osThreadId cmdHandle;
-osThreadId SDRecoveryHandle;
 osMessageQId mainCanTxQHandle;
 osMessageQId mainCanRxQHandle;
 osMessageQId SDLogCanQueueHandle;
@@ -100,6 +99,7 @@ osMutexId vcpMtxHandle;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint32_t selfStatusWord;
+extern Disk_drvTypeDef disk;
 
 /* USER CODE END PV */
 
@@ -118,7 +118,6 @@ void doRxHousekeep(void const * argument);
 void doSDLog(void const * argument);
 void doRadioTx(void const * argument);
 void doCmd(void const * argument);
-void doSDRecovery(void const * argument);
 void TmrKickDog(void const * argument);
 void TmrSendHB(void const * argument);
 
@@ -184,7 +183,7 @@ int main(void)
   MX_CAN1_Init();
   MX_UART4_Init();
   MX_USART2_UART_Init();
-//  MX_WWDG_Init();
+  MX_WWDG_Init();
   MX_SPI2_Init();
 
   /* USER CODE BEGIN 2 */
@@ -270,13 +269,8 @@ int main(void)
   osThreadDef(cmd, doCmd, osPriorityNormal, 0, 512);
   cmdHandle = osThreadCreate(osThread(cmd), NULL);
 
-  /* definition and creation of SDRecovery */
-  osThreadDef(SDRecovery, doSDRecovery, osPriorityBelowNormal, 0, 512);
-  SDRecoveryHandle = osThreadCreate(osThread(SDRecovery), NULL);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  vTaskSuspend(SDLogHandle);
   /* USER CODE END RTOS_THREADS */
 
   /* Create the queue(s) */
@@ -299,11 +293,11 @@ int main(void)
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
-
+ 
 
   /* Start scheduler */
   osKernelStart();
-
+  
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -328,13 +322,13 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
-    /**Configure the main internal regulator output voltage
+    /**Configure the main internal regulator output voltage 
     */
   __HAL_RCC_PWR_CLK_ENABLE();
 
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    /**Initializes the CPU, AHB and APB busses clocks
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -351,7 +345,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -372,11 +366,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time
+    /**Configure the Systick interrupt time 
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick
+    /**Configure the Systick 
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -437,7 +431,7 @@ static void MX_RTC_Init(void)
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
 
-    /**Initialize RTC Only
+    /**Initialize RTC Only 
     */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -451,7 +445,7 @@ static void MX_RTC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initialize RTC and set the Time and Date
+    /**Initialize RTC and set the Time and Date 
     */
   if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x32F2){
   sTime.Hours = 0x13;
@@ -556,10 +550,10 @@ static void MX_WWDG_Init(void)
 
 }
 
-/**
+/** 
   * Enable DMA controller clock
   */
-static void MX_DMA_Init(void)
+static void MX_DMA_Init(void) 
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -580,13 +574,13 @@ static void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as
-        * Analog
-        * Input
+/** Configure pins as 
+        * Analog 
+        * Input 
         * Output
         * EVENT_OUT
         * EXTI
-        * Free pins are configured automatically as Analog (this feature is enabled through
+        * Free pins are configured automatically as Analog (this feature is enabled through 
         * the Code Generation settings)
 */
 static void MX_GPIO_Init(void)
@@ -613,19 +607,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC0 PC1 PC5 PC6
-                           PC7 PC8 PC9 PC10
+  /*Configure GPIO pins : PC0 PC1 PC5 PC6 
+                           PC7 PC8 PC9 PC10 
                            PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6 
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10 
                           |GPIO_PIN_11|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA4 PA6 PA7 PA8
+  /*Configure GPIO pins : PA4 PA6 PA7 PA8 
                            PA9 PA10 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8 
                           |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -645,11 +639,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB14
-                           PB15 PB3 PB4 PB5
+  /*Configure GPIO pins : PB0 PB1 PB2 PB14 
+                           PB15 PB3 PB4 PB5 
                            PB6 PB7 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_14
-                          |GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_14 
+                          |GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
                           |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -674,8 +668,6 @@ static void MX_GPIO_Init(void)
 /* doApplication function */
 void doApplication(void const * argument)
 {
-  /* init code for FATFS */
-  MX_FATFS_Init();
 
   /* USER CODE BEGIN 5 */
 	uint8_t startingBytes[2][9] = {
@@ -709,7 +701,7 @@ void doApplication(void const * argument)
 			osDelay(1);
 		}
 	}
-  /* USER CODE END 5 */
+  /* USER CODE END 5 */ 
 }
 
 /* doProcessCan function */
@@ -726,9 +718,9 @@ void doProcessCan(void const * argument)
 		uint32_t canID = newFrame.id;	// canID container //TODO why byte
 		if(canID == p2pOffset || canID == selfNodeID + p2pOffset){
 			// Multicast or unicast command received!
-//			taskENTER_CRITICAL();
+			taskENTER_CRITICAL();
 			executeCommand(newFrame.Data[0]);
-//			taskEXIT_CRITICAL();
+			taskEXIT_CRITICAL();
 			// Note: Any application-level messages should be either mutex protected or passed via queue!
 		}
 	}
@@ -766,7 +758,6 @@ void doRxHousekeep(void const * argument)
 void doSDLog(void const * argument)
 {
   /* USER CODE BEGIN doSDLog */
-  vTaskSuspend(SDRecoveryHandle);
 #define f_writeBuf(a,b,c) f_write((a),(b),(sizeof(b)-1),(c))
 	static Can_frame_t newFrame;
 	static FIL newFIL;
@@ -811,12 +802,13 @@ void doSDLog(void const * argument)
         dir3Name[0] = '0' + (newDate.Date >> 4);
         dir3Name[1] = '0' + (newDate.Date & 0xf);
 
+        ret = f_mount(0, SD_Path, 0);
+        disk = (Disk_drvTypeDef){0};
         newFS = (FATFS){0};
+        MX_FATFS_Init();
 		ret = f_mount(&newFS, SD_Path, 0);
 		ret = f_mkdir(dir0Name);
 		if(ret!=FR_OK && ret!=FR_EXIST){
-			// vTaskResume(SDRecoveryHandle);
-			// vTaskSuspend(NULL);
 			osDelay(500);
 			continue;
 		}
@@ -888,8 +880,6 @@ void doSDLog(void const * argument)
 			ret |= f_sync(&newFIL);
 			first=0;
 			if(ret!=FR_OK){
-				// vTaskResume(SDRecoveryHandle);
-				// vTaskSuspend(NULL);
 				osDelay(500);
 				break;
 			}
@@ -996,31 +986,6 @@ void doCmd(void const * argument)
   /* USER CODE END doCmd */
 }
 
-/* doSDRecovery function */
-void doSDRecovery(void const * argument)
-{
-  /* USER CODE BEGIN doSDRecovery */
-  // static FATFS newFS;
-  // tatic uint8_t SD_Path[] = "";
-  // tatic uint8_t dir0Name[] = "DC_TEST";
-  // tatic FRESULT ret;
-  //   MX_FATFS_Init();
-  for(;;){
-	// //newFS = (FATFS){0};
-    // //ret = f_mount(0, SD_Path, 0);
-	// ret = f_mount(&newFS, SD_Path, 0);
-	// ret = f_mkdir(dir0Name);
-	// if(ret!=FR_OK && ret!=FR_EXIST){
-	// 	osDelay(100);
-	// }else{
-	// 	vTaskResume(SDLogHandle);
-	// 	vTaskSuspend(SDRecoveryHandle);
-	// }
-	osDelay(1000);
-  }
-  /* USER CODE END doSDRecovery */
-}
-
 /* TmrKickDog function */
 void TmrKickDog(void const * argument)
 {
@@ -1109,7 +1074,7 @@ void _Error_Handler(char * file, int line)
     HAL_Delay(200);
     HAL_NVIC_SystemReset();
   }
-  /* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */ 
 }
 
 #ifdef USE_FULL_ASSERT
@@ -1134,10 +1099,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */
+  */ 
 
 /**
   * @}
-*/
+*/ 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
