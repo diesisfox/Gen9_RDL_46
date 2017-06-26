@@ -668,6 +668,8 @@ static void MX_GPIO_Init(void)
 /* doApplication function */
 void doApplication(void const * argument)
 {
+  /* init code for FATFS */
+  MX_FATFS_Init();
 
   /* USER CODE BEGIN 5 */
 	uint8_t startingBytes[2][9] = {
@@ -780,6 +782,12 @@ void doSDLog(void const * argument)
 	static uint8_t datamsg[] = ",\"xx\"";
 	static uint8_t charBuf;
 	static uint8_t timeStampBuf[] = "xx:xx:xx";
+    
+    static Can_frame_t dcFrame;
+    dcFrame.dlc = 0;
+    dcFrame.id = 0x700;
+    dcFrame.isExt = 0;
+    dcFrame.isRemote = 0;
 
   /* init code for FATFS */
   MX_FATFS_Init();
@@ -809,8 +817,9 @@ void doSDLog(void const * argument)
 		ret = f_mount(&newFS, SD_Path, 0);
 		ret = f_mkdir(dir0Name);
 		if(ret!=FR_OK && ret!=FR_EXIST){
-			osDelay(500);
+			osDelay(100);
 			continue;
+//            bxCan_sendFrame(&dcFrame);
 		}
 		ret = f_chdir(dir0Name);
 		ret = f_mkdir(dir1Name);
@@ -874,13 +883,11 @@ void doSDLog(void const * argument)
 				}
 				ret |= f_writeBuf(&newFIL, "]}\n]}", &bw);
 			}
-			// switch (newFrame.id) {
-			// 	case /* value */:
-			// }
 			ret |= f_sync(&newFIL);
 			first=0;
 			if(ret!=FR_OK){
-				osDelay(500);
+                bxCan_sendFrame(&dcFrame);
+				osDelay(100);
 				break;
 			}
 		}
