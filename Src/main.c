@@ -112,6 +112,7 @@ static void MX_UART4_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_WWDG_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_RTC_Init(void);
 void doApplication(void const * argument);
 void doProcessCan(void const * argument);
 void doRxHousekeep(void const * argument);
@@ -174,7 +175,10 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-    hrtc.Instance = RTC;
+  hrtc.Instance = RTC;
+  if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x32F2){
+    MX_RTC_Init();
+  }
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
